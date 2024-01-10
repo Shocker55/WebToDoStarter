@@ -66,6 +66,7 @@ public class TaskDaoImpl implements TaskDao {
                 + "WHERE task.id = ?";
 
         //タスクを一件取得
+        //タスクを取得できなければEmptyResultDataAccessExceptionという非チェック例外が発生する
         Map<String, Object> result = jdbcTemplate.queryForMap(sql, id);
 
         Task task = new Task();
