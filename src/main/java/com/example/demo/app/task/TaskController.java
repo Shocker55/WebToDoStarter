@@ -71,14 +71,20 @@ public class TaskController {
             Model model) {
 
         if (!result.hasErrors()) {
-            //削除してください
-            Task task = null;
-
             //TaskFormのデータをTaskに格納
+//            Task task = new Task();
+//            task.setUserId(1);
+//            task.setTypeId(taskForm.getTypeId());
+//            task.setTitle(taskForm.getTitle());
+//            task.setDetail(taskForm.getDetail());
+//            task.setDeadline(taskForm.getDeadline());
+//            毎回上記のように書いてtaskに格納するのは面倒なのでprivate methodを作成
 
-            //一件挿入後リダイレクト
+            Task task = makeTask(taskForm, 0);
 
-            return "";
+            //一件挿入後リダイレクト (二重クリック対策)
+            taskService.insert(task);
+            return "redirect:/task";
         } else {
             taskForm.setNewTask(true);
             model.addAttribute("taskForm", taskForm);
@@ -237,6 +243,7 @@ public class TaskController {
      * @param taskId   新規登録の場合は0を指定
      * @return
      */
+    // このメソッドを作成することでTaskFormのデータをTaskに入れて返す際に再利用できる
     private Task makeTask(TaskForm taskForm, int taskId) {
         Task task = new Task();
         if (taskId != 0) {
