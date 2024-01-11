@@ -159,7 +159,7 @@ public class TaskController {
             //更新処理、フラッシュスコープの使用、リダイレクト（個々の編集ページ）
             taskService.update(task);
             redirectAttributes.addFlashAttribute("complete", "変更が完了しました");
-            return "redirect:/task" + taskId;
+            return "redirect:/task/" + taskId;
         } else {
             model.addAttribute("taskForm", taskForm);
             model.addAttribute("title", "タスク一覧");
