@@ -44,10 +44,13 @@ public class TaskController {
     public String task(TaskForm taskForm, Model model) {
 
         //新規登録か更新かを判断する仕掛け
+        // ここがtrueかfalseかでthymeleafを使ってindex.html上でformのアクション先を決定している
+        taskForm.setNewTask(true);
 
         //Taskのリストを取得する
+        List<Task> list = taskService.findAll();
 
-        model.addAttribute("list", "");
+        model.addAttribute("list", list);
         model.addAttribute("title", "タスク一覧");
 
         return "task/index";
@@ -68,14 +71,20 @@ public class TaskController {
             Model model) {
 
         if (!result.hasErrors()) {
-            //削除してください
-            Task task = null;
-
             //TaskFormのデータをTaskに格納
+//            Task task = new Task();
+//            task.setUserId(1);
+//            task.setTypeId(taskForm.getTypeId());
+//            task.setTitle(taskForm.getTitle());
+//            task.setDetail(taskForm.getDetail());
+//            task.setDeadline(taskForm.getDeadline());
+//            毎回上記のように書いてtaskに格納するのは面倒なのでprivate methodを作成
 
-            //一件挿入後リダイレクト
+            Task task = makeTask(taskForm, 0);
 
-            return "";
+            //一件挿入後リダイレクト (リロードによる二重送信対策)
+            taskService.insert(task);
+            return "redirect:/task";
         } else {
             taskForm.setNewTask(true);
             model.addAttribute("taskForm", taskForm);
@@ -96,17 +105,26 @@ public class TaskController {
      */
     @GetMapping("/{id}")
     public String showUpdate(
+            // TaskForm taskFromだけでモデルに TaskForm クラスが暗黙的に追加される
+            // @ModelAttribute TaskForm taskFormと同じ
             TaskForm taskForm,
+            // @PathVariable は /{id} からidを取得できる
+            // @RequestParams との違いに注意
             @PathVariable int id,
             Model model) {
 
         //Taskを取得(Optionalでラップ)
+        Optional<Task> taskOpt = taskService.getTask(id);
 
         //TaskFormへの詰め直し
+        Optional<TaskForm> taskFormOpt = taskOpt.map(t -> makeTaskForm(t));
 
         //TaskFormがnullでなければ中身を取り出し
+        if (taskFormOpt.isPresent()) {
+            taskForm = taskFormOpt.get();
+        }
 
-        model.addAttribute("taskForm", "");
+        model.addAttribute("taskForm", taskForm);
         List<Task> list = taskService.findAll();
         model.addAttribute("list", list);
         model.addAttribute("taskId", id);
@@ -128,16 +146,20 @@ public class TaskController {
     public String update(
             @Valid @ModelAttribute TaskForm taskForm,
             BindingResult result,
+            // @RequestParam は /...?taskId=1 からidを取得できる
+            // inputのtype="hidden" で送った情報もクエリパラメータになるので取得可能
             @RequestParam("taskId") int taskId,
             Model model,
             RedirectAttributes redirectAttributes) {
 
         if (!result.hasErrors()) {
             //TaskFormのデータをTaskに格納
+            Task task = makeTask(taskForm, taskId);
 
             //更新処理、フラッシュスコープの使用、リダイレクト（個々の編集ページ）
-
-            return "";
+            taskService.update(task);
+            redirectAttributes.addFlashAttribute("complete", "変更が完了しました");
+            return "redirect:/task/" + taskId;
         } else {
             model.addAttribute("taskForm", taskForm);
             model.addAttribute("title", "タスク一覧");
@@ -158,8 +180,9 @@ public class TaskController {
             Model model) {
 
         //タスクを一件削除しリダイレクト
+        taskService.deleteById(id);
 
-        return "";
+        return "redirect:/task";
     }
 
     /**
@@ -234,6 +257,7 @@ public class TaskController {
      * @param taskId   新規登録の場合は0を指定
      * @return
      */
+    // このメソッドを作成することでTaskFormのデータをTaskに入れて返す際に再利用できる
     private Task makeTask(TaskForm taskForm, int taskId) {
         Task task = new Task();
         if (taskId != 0) {
@@ -253,6 +277,7 @@ public class TaskController {
      * @param task
      * @return
      */
+    // makeTaskとは逆にtaskのデータをTaskFormに入れて返す際に再利用できる
     private TaskForm makeTaskForm(Task task) {
 
         TaskForm taskForm = new TaskForm();
