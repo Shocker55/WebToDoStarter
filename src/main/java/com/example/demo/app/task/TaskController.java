@@ -82,7 +82,7 @@ public class TaskController {
 
             Task task = makeTask(taskForm, 0);
 
-            //一件挿入後リダイレクト (二重クリック対策)
+            //一件挿入後リダイレクト (リロードによる二重送信対策)
             taskService.insert(task);
             return "redirect:/task";
         } else {
@@ -146,16 +146,20 @@ public class TaskController {
     public String update(
             @Valid @ModelAttribute TaskForm taskForm,
             BindingResult result,
+            // @RequestParam は /...?taskId=1 からidを取得できる
+            // inputのtype="hidden" で送った情報もクエリパラメータになるので取得可能
             @RequestParam("taskId") int taskId,
             Model model,
             RedirectAttributes redirectAttributes) {
 
         if (!result.hasErrors()) {
             //TaskFormのデータをTaskに格納
+            Task task = makeTask(taskForm, taskId);
 
             //更新処理、フラッシュスコープの使用、リダイレクト（個々の編集ページ）
-
-            return "";
+            taskService.update(task);
+            redirectAttributes.addFlashAttribute("complete", "変更が完了しました");
+            return "redirect:/task" + taskId;
         } else {
             model.addAttribute("taskForm", taskForm);
             model.addAttribute("title", "タスク一覧");
@@ -176,8 +180,9 @@ public class TaskController {
             Model model) {
 
         //タスクを一件削除しリダイレクト
+        taskService.deleteById(id);
 
-        return "";
+        return "redirect:/task";
     }
 
     /**
