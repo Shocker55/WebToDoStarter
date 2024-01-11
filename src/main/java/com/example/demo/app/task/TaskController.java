@@ -105,17 +105,26 @@ public class TaskController {
      */
     @GetMapping("/{id}")
     public String showUpdate(
+            // TaskForm taskFromだけでモデルに TaskForm クラスが暗黙的に追加される
+            // @ModelAttribute TaskForm taskFormと同じ
             TaskForm taskForm,
+            // @PathVariable は /{id} からidを取得できる
+            // @RequestParams との違いに注意
             @PathVariable int id,
             Model model) {
 
         //Taskを取得(Optionalでラップ)
+        Optional<Task> taskOpt = taskService.getTask(id);
 
         //TaskFormへの詰め直し
+        Optional<TaskForm> taskFormOpt = taskOpt.map(t -> makeTaskForm(t));
 
         //TaskFormがnullでなければ中身を取り出し
+        if (taskFormOpt.isPresent()) {
+            taskForm = taskFormOpt.get();
+        }
 
-        model.addAttribute("taskForm", "");
+        model.addAttribute("taskForm", taskForm);
         List<Task> list = taskService.findAll();
         model.addAttribute("list", list);
         model.addAttribute("taskId", id);
@@ -263,6 +272,7 @@ public class TaskController {
      * @param task
      * @return
      */
+    // makeTaskとは逆にtaskのデータをTaskFormに入れて返す際に再利用できる
     private TaskForm makeTaskForm(Task task) {
 
         TaskForm taskForm = new TaskForm();
