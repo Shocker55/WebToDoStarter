@@ -6,6 +6,7 @@ import static org.mockito.Mockito.when;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.DisplayName;
@@ -17,6 +18,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import com.example.demo.dao.TaskDao;
 import com.example.demo.entity.Task;
+import org.springframework.dao.EmptyResultDataAccessException;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("TaskServiceImplの単体テスト")
@@ -32,6 +34,11 @@ class TaskServiceImplUnitTest {
     @DisplayName("テーブルtaskの全件取得で0件の場合のテスト")
         // テスト名
     void testFindAllReturnEmptyList() {
+
+        // TaskServiceImplのfindAllメソッドのテスト
+        // モック(stub)クラスのdao (TaskDaoのインターフェース)がfindAllで空のlistを取得したら
+        // TaskServiceのfindAllメソッドも空のlistを返す確認のテスト
+        // 分からなければ、TaskDaoインターフェースとTaskServiceImplを見ながら考えるといい
 
         //空のリスト
         List<Task> list = new ArrayList<>();
@@ -82,9 +89,14 @@ class TaskServiceImplUnitTest {
     void testGetTaskThrowException() {
 
         // モッククラスのI/Oをセット
+        when(dao.findById(0)).thenThrow(new EmptyResultDataAccessException(1));
 
         //タスクが取得できないとTaskNotFoundExceptionが発生することを検査
-
+        try {
+            Optional<Task> task0 = taskServiceImpl.getTask(0);
+        } catch (TaskNotFoundException e) {
+            Assertions.assertEquals(e.getMessage(), "指定されたタスクが存在しません");
+        }
     }
 
     @Test // テストケース
@@ -93,15 +105,20 @@ class TaskServiceImplUnitTest {
     void testGetTaskReturnOne() {
 
         //Taskをデフォルト値でインスタンス化
+        Task task = new Task();
+        Optional<Task> taskOpt = Optional.ofNullable(task);
 
         // モッククラスのI/Oをセット
+        when(dao.findById(1)).thenReturn(taskOpt);
 
         // サービスを実行
+        Optional<Task> taskActual = taskServiceImpl.getTask(1);
 
         // モックの指定メソッドの実行回数を検査
+        verify(dao, times(1)).findById(1);
 
         //Taskが存在していることを確認
-
+        Assertions.assertTrue(taskActual.isPresent());
     }
 
     @Test // テストケース　ユニットテストではデータベースの例外は考えない
@@ -110,8 +127,13 @@ class TaskServiceImplUnitTest {
     void throwNotFoundException() {
 
         // モッククラスのI/Oをセット
+        when(dao.deleteById(0)).thenReturn(0);
 
         //削除対象が存在しない場合、例外が発生することを検査
-
+        try {
+            taskServiceImpl.deleteById(0);
+        } catch (TaskNotFoundException e) {
+            Assertions.assertEquals(e.getMessage(), "削除するタスクが存在しません");
+        }
     }
 }
